@@ -4,7 +4,7 @@ An enterprise-grade Decision Intelligence product built for Kenvue leadership. I
 
 > **For the optimal presentation flow and script, open [DEMO_HELPER.md](./DEMO_HELPER.md).**
 
-> **For a newcomer-friendly codebase walkthrough tailored to Dhanush's data/BI background, open [docs/DHANUSH_CODEBASE_GUIDE.md](./docs/DHANUSH_CODEBASE_GUIDE.md).**
+
 
 ## Core Architecture
 
