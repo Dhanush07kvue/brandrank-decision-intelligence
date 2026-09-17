@@ -1,0 +1,35 @@
+{
+  "name": "brand-activation-intelligence-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "serve": "npx http-server dist -p 8081 -c-1",
+    "test": "vitest",
+    "clean:data": "bash ../scripts/clean_data.sh",
+    "clean:data:all": "bash ../scripts/clean_data.sh --all",
+    "demo:playwright": "node ./scripts/demo-playwright.mjs",
+    "demo:playwright:headed": "PW_HEADLESS=false node ./scripts/demo-playwright.mjs"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.18.2",
+    "recharts": "^3.1.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.2",
+    "autoprefixer": "^10.5.4",
+    "playwright": "^1.62.1",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.1",
+    "vitest": "^3.2.4"
+  }
+}

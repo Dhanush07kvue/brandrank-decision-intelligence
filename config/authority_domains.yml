@@ -1,0 +1,12 @@
+version: 1
+authority_types:
+  owned:
+    - aveeno.com
+  retailer:
+    - target.com
+    - ulta.com
+    - sephora.com
+  medical_professional:
+    - aad.org
+    - mayoclinic.org
+    - nih.gov

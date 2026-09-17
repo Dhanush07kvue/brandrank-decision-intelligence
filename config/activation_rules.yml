@@ -1,0 +1,12 @@
+version: 1
+weights:
+  visibility_gap: 0.25
+  transparency_risk: 0.20
+  cross_llm_consistency: 0.15
+  source_authority_gap: 0.15
+  approved_evidence_readiness: 0.10
+  business_relevance: 0.10
+  measurability: 0.05
+thresholds:
+  min_independent_signals: 2
+  severe_single_signal_review_required: true

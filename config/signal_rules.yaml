@@ -1,0 +1,261 @@
+# Signal Rule Registry — Kenvue AEO/GEO Decision Intelligence
+#
+# Each rule is deterministic: given the same canonical observations, the same
+# rule version always produces the same signal instances. The LLM never
+# participates in this evaluation; it may only explain a signal after the
+# fact using the evidence this file's rules attach to it.
+#
+# evaluator: name of the Python function in app/analytics/signals.py that
+# knows how to pull the relevant rows out of canonical_observations for this
+# rule's module/shape. The YAML controls thresholds, severity bands, business
+# priority and default workflow status — not the retrieval SQL itself, because
+# each module's real row shape (visibility rankings, per-engine claim scores,
+# readiness factors, referenced sources) is too different to express safely
+# as a single generic JSON-path DSL. See DECISIONS.md D13.
+#
+# comparator: "below" means the rule fires when computed value < threshold.
+#             "above" means the rule fires when computed value > threshold.
+#
+# governance_status:
+#   GOVERNED     — metric contracts verified, eligible for leadership output
+#   EXPERIMENTAL — Kenvue-proposed rule with provisional metric interpretation
+#   BLOCKED      — cannot fire; blocked by unresolved metric/semantic dependency
+#
+# rule_source: who defined the threshold/logic
+#   KENVUE_PROPOSED_RULE  — threshold chosen by Kenvue team, not BrandRank
+#   VENDOR_DEFINITION     — threshold or formula defined by BrandRank
+#
+version: 2
+
+rules:
+  - signal_rule_id: VISIBILITY_GAP_001
+    version: 2
+    enabled: false
+    name: Persistent priority-prompt visibility gap
+    signal_type: VISIBILITY_GAP
+    module: Visibility
+    evaluator: visibility_gap
+    governance_status: BLOCKED
+    blocked_reason: >-
+      Visibility rank semantic contract is PROVISIONAL_INFERRED. Raw rank 0.1
+      may correspond to position #1 (best), making a threshold of "average < 0.35
+      is a gap" semantically unsafe — it could label a strong rank as a gap.
+      Requires BrandRank vendor validation of rank encoding before this rule
+      can be promoted to GOVERNED or EXPERIMENTAL.
+    rule_source: KENVUE_PROPOSED_RULE
+    metric_contract_dependencies:
+      - MTR-VIS-RANK
+    minimum_metric_validation_status: VERIFIED_VENDOR
+    known_limitations:
+      - "Rank direction (lower=better vs higher=better) is PROVISIONAL_INFERRED"
+      - "Summary metric reconciliation not achieved from detail observations"
+      - "Model version not available in payload — engine-to-engine comparison uncontrolled"
+    description_template: >-
+      {brand} visibility for priority prompt "{group}" averages {value:.2f}
+      across {engines} AI engine(s), below the {threshold:.2f} minimum
+      expected for a high-priority ("hero") prompt.
+    business_priority: HIGH
+    default_workflow_status: NEEDS_DIAGNOSIS
+    conditions:
+      comparator: below
+      threshold: 0.35
+      min_evidence_rows: 1
+      min_runs: 1
+      priority_only: true
+    severity_bands:
+      - {max: 0.15, severity: CRITICAL}
+      - {max: 0.25, severity: HIGH}
+      - {max: 0.35, severity: MEDIUM}
+    default_severity: LOW
+
+  - signal_rule_id: CROSS_LLM_INCONSISTENCY_001
+    version: 1
+    enabled: true
+    name: Cross-LLM accuracy inconsistency
+    signal_type: CROSS_LLM_INCONSISTENCY
+    module: AI Vulnerability
+    evaluator: cross_llm_inconsistency
+    governance_status: EXPERIMENTAL
+    blocked_reason: null
+    rule_source: KENVUE_PROPOSED_RULE
+    metric_contract_dependencies:
+      - MTR-VULN-LLM-ACCURACY
+    minimum_metric_validation_status: PROVISIONAL_INFERRED
+    known_limitations:
+      - "Standard deviation > 0.15 threshold is a Kenvue proposed rule, not a BrandRank definition"
+      - "Model version not available in payload — engine-to-engine comparison uncontrolled"
+      - "llmAccuracyScore formula is vendor-calculated, not independently verified"
+    description_template: >-
+      AI engines disagree sharply on the statement "{group}": accuracy
+      scores range across a standard deviation of {value:.2f} over
+      {engines} engine(s), above the {threshold:.2f} consistency floor.
+    business_priority: HIGH
+    default_workflow_status: NEEDS_DIAGNOSIS
+    conditions:
+      comparator: above
+      threshold: 0.15
+      min_evidence_rows: 3
+      min_runs: 1
+    severity_bands:
+      - {min: 0.30, severity: CRITICAL}
+      - {min: 0.22, severity: HIGH}
+      - {min: 0.15, severity: MEDIUM}
+    default_severity: LOW
+
+  - signal_rule_id: CLAIM_SUBSTANTIATION_RISK_001
+    version: 2
+    enabled: true
+    name: AI claim agreement investigation
+    signal_type: CLAIM_AGREEMENT_INVESTIGATION
+    module: AI Vulnerability
+    evaluator: claim_substantiation_risk
+    governance_status: EXPERIMENTAL
+    blocked_reason: null
+    rule_source: KENVUE_PROPOSED_RULE
+    metric_contract_dependencies:
+      - MTR-VULN-CONSENSUS-ACCURACY
+    minimum_metric_validation_status: PROVISIONAL_INFERRED
+    known_limitations:
+      - "consensusAccuracyScore formula is vendor-calculated, not independently verified"
+      - "AI disagreement ≠ regulatory substantiation risk without Kenvue truth join"
+      - "Vendor interpretation and vendor recommendation are included in source but must remain separate from Kenvue recommendation"
+    description_template: >-
+      The claim "{group}" has a consensus accuracy score of {value:.2f}
+      across AI engines, below the {threshold:.2f} agreement floor.
+      {disputed_note}
+    business_priority: HIGH
+    default_workflow_status: NEEDS_TRUTH_VALIDATION
+    conditions:
+      comparator: below
+      threshold: 0.60
+      min_evidence_rows: 1
+      min_runs: 1
+    severity_bands:
+      - {max: 0.35, severity: CRITICAL}
+      - {max: 0.50, severity: HIGH}
+      - {max: 0.60, severity: MEDIUM}
+    default_severity: LOW
+
+  - signal_rule_id: READINESS_DETERIORATION_001
+    version: 1
+    enabled: true
+    name: Content readiness factor below floor
+    signal_type: READINESS_DETERIORATION
+    module: Content Readiness
+    evaluator: readiness_deterioration
+    governance_status: EXPERIMENTAL
+    blocked_reason: null
+    rule_source: KENVUE_PROPOSED_RULE
+    metric_contract_dependencies:
+      - MTR-CR-WEIGHTED-SCORE
+    minimum_metric_validation_status: PROVISIONAL_INFERRED
+    known_limitations:
+      - "weightedScore is vendor-calculated — weighting formula not independently verified"
+      - "Threshold 0.70 is a Kenvue proposed rule, not a BrandRank definition"
+      - "Readiness group rollup formula unknown"
+    description_template: >-
+      The "{group}" readiness factor scores {value:.2f}, below the
+      {threshold:.2f} floor expected before content activation.
+    business_priority: MEDIUM
+    default_workflow_status: NEEDS_DIAGNOSIS
+    conditions:
+      comparator: below
+      threshold: 0.70
+      min_evidence_rows: 1
+      min_runs: 1
+    severity_bands:
+      - {max: 0.50, severity: CRITICAL}
+      - {max: 0.60, severity: HIGH}
+      - {max: 0.70, severity: MEDIUM}
+    default_severity: LOW
+
+  - signal_rule_id: EVIDENCE_ACCESSIBILITY_001
+    version: 1
+    enabled: true
+    name: Citation / evidence accessibility deficit
+    signal_type: EVIDENCE_ACCESSIBILITY_DEFICIT
+    module: Content Readiness
+    evaluator: evidence_accessibility_deficit
+    governance_status: EXPERIMENTAL
+    blocked_reason: null
+    rule_source: KENVUE_PROPOSED_RULE
+    metric_contract_dependencies: []
+    minimum_metric_validation_status: PROVISIONAL_INFERRED
+    known_limitations:
+      - "Owned-domain ratio threshold (0.20) is a Kenvue proposed rule"
+      - "Domain ownership check uses simple brand-token substring match"
+    description_template: >-
+      Only {value:.0%} of {engines} referenced sources are {brand}-owned
+      domains, below the {threshold:.0%} floor for machine-readable
+      evidence accessibility.
+    business_priority: MEDIUM
+    default_workflow_status: NEEDS_DIAGNOSIS
+    conditions:
+      comparator: below
+      threshold: 0.20
+      min_evidence_rows: 5
+      min_runs: 1
+    severity_bands:
+      - {max: 0.05, severity: CRITICAL}
+      - {max: 0.10, severity: HIGH}
+      - {max: 0.20, severity: MEDIUM}
+    default_severity: LOW
+
+  - signal_rule_id: COMPETITIVE_PLAYBOOK_GAP_001
+    version: 1
+    enabled: true
+    name: Competitive content playbook opportunity
+    signal_type: COMPETITIVE_PLAYBOOK_GAP
+    module: Overview
+    evaluator: competitive_playbook_risk
+    governance_status: EXPERIMENTAL
+    rule_source: KENVUE_PROPOSED_RULE
+    known_limitations:
+      - "scoreDiff is source-reported and its calculation is not independently verified"
+      - "The playbook rationale and recommended actions are vendor/source observations, not Kenvue-approved recommendations"
+      - "A source-level advantage does not establish causation or guaranteed AI improvement"
+    description_template: >-
+      The source playbook reports a {value:.2f} advantage associated with
+      {competitor} for the prompt "{group}"; review the linked rationale and
+      priority actions before deciding whether a content response is warranted.
+    business_priority: MEDIUM
+    default_workflow_status: NEEDS_DIAGNOSIS
+    conditions:
+      comparator: above
+      threshold: 0.05
+      min_evidence_rows: 1
+      min_runs: 1
+    severity_bands:
+      - {min: 0.20, severity: HIGH}
+      - {min: 0.10, severity: MEDIUM}
+      - {min: 0.05, severity: LOW}
+    default_severity: LOW
+
+  - signal_rule_id: BRAND_ATTRIBUTE_BENCHMARK_001
+    version: 1
+    enabled: true
+    name: Competitor brand-attribute lead
+    signal_type: BRAND_ATTRIBUTE_BENCHMARK
+    module: AI Vulnerability
+    evaluator: brand_attribute_benchmark
+    governance_status: EXPERIMENTAL
+    rule_source: KENVUE_PROPOSED_RULE
+    known_limitations:
+      - "Attribute scores are source-reported and the scoring method is not independently verified"
+      - "The scorecard is a perception benchmark, not a market-share, sales, or causal measure"
+      - "Per-engine rationale must be reviewed before making a messaging decision"
+    description_template: >-
+      {competitor} scores {value:.2f} points above Aveeno on the source-reported
+      "{group}" attribute scorecard; review the underlying brand and engine evidence.
+    business_priority: MEDIUM
+    default_workflow_status: NEEDS_DIAGNOSIS
+    conditions:
+      comparator: above
+      threshold: 0.05
+      min_evidence_rows: 2
+      min_runs: 1
+    severity_bands:
+      - {min: 0.15, severity: HIGH}
+      - {min: 0.10, severity: MEDIUM}
+      - {min: 0.05, severity: LOW}
+    default_severity: LOW

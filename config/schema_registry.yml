@@ -1,0 +1,18 @@
+version: 1
+families:
+  AI_VISIBILITY_V1:
+    schema_family: ai_visibility
+    required_headers: ["rowType", "searchTerm"]
+    optional_headers: ["cohort", "brandName", "rank", "isHero", "llm", "sourceName", "sourceUrl"]
+  CONTENT_READINESS_V1:
+    schema_family: content_readiness
+    required_headers: ["pageUrl", "groupName", "factorName", "score"]
+    optional_headers: ["pageLabel", "drawerPayload"]
+  VULNERABILITY_ACCURACY_V1:
+    schema_family: vulnerability_accuracy
+    required_headers: ["rowType", "statementText"]
+    optional_headers: ["statementStatus", "overallScore", "consensusAccuracyScore", "llm", "model", "llmStatus", "llmAccuracyScore", "llmAnalysis"]
+  SEARCH_TERM_SUMMARY_V1:
+    schema_family: search_term_summary
+    required_headers: ["text", "score", "category_name"]
+    optional_headers: ["label", "heroScore", "trend", "category_id", "category_is_branded"]
